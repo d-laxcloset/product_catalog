@@ -4,7 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>D-LaxCloset Product Catalog</title>
+    
+      <link rel="preload" href="bg.png" as="image">
     <style>
+
         :root {
             --primary-color: #275c6c;
             --secondary-color: #1A4950;
@@ -14,8 +17,75 @@
             --success-color: #4cc9f0;
             --warning-color: #f72585;
         }
+
+        /* Add splash screen styles at the top */
+        #splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('bg.png') center/cover no-repeat fixed;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease-out;
+        }
         
-         *{
+        #splash-logo {
+            width: 150px;
+            height: 150px;
+            margin-bottom: 30px;
+            animation: pulse 1.5s infinite;
+        }
+        
+        #splash-text {
+            color: white;
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        /* Hide all content initially */
+        #page-content {
+            flex: 1; /* Takes remaining space */
+            display: flex;
+            flex-direction: column;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.8s ease-out, visibility 0s 0.8s;
+        }
+
+        /* Show content when splash is done */
+        body.splash-complete #page-content {
+            opacity: 1;
+            visibility: visible;
+            transition: opacity 0.8s ease-out;
+        }
+
+        *{
             box-sizing: border-box;
             margin: 0;
             padding: 0;
@@ -23,49 +93,52 @@
         }
         
         body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh; /* Full viewport height */
+            margin: 0;
+            padding: 20px;
             background: url('bg.png') center/cover no-repeat fixed;
             color: var(--dark-color);
             line-height: 1.6;
-            padding: 20px;
-            min-height: 100vh;
         }
-
+        
         .top-bar {
-            /*background: 
-                url('bg.png') center/cover no-repeat;*/
-            padding: 20px;
+            /* Add these properties to center its children */
             display: flex;
-            justify-content: flex-start; /* Changed to left-align */
-            align-items: center;
+            justify-content: center; /* This centers horizontally */
+            align-items: center; /* This centers vertically */
+            width: 100%; /* Ensure it takes full width */
+            padding: 20px;
             min-height: 120px;
             position: relative;
-            /*box-shadow: 0 2px 10px rgba(0,0,0,0.1);*/
         }
         
         .logo-container {
             background-color: rgba(0,0,0,0.5);
-            width: 100px; /* Slightly larger for better visibility */
+            width: 100px;
             height: 100px;
             border-radius: 50%;
             overflow: hidden;
-            /*border: 3px solid white; /* Changed to white for contrast */
             display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 2; /* Ensures logo stays above background */
+            justify-content: center; /* Centers logo horizontally inside container */
+            align-items: center; /* Centers logo vertically inside container */
+            /* Remove z-index unless you have overlapping elements */
+            margin: 0 auto; /* Additional centering for older browsers */
         }
+
 
         .logo {
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: cover; /* or 'contain' if you want to see the whole logo */
         }
         
         .container {
+            flex: 1;
             max-width: 1200px;
             margin: 20px auto;
             padding: 0 20px;
-            flex: 1;
         }
         
         .page {
@@ -227,6 +300,12 @@
             margin-bottom: 10px;
             color: var(--dark-color);
         }
+
+        .product-price {
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
         
         .quantity-control {
             display: flex;
@@ -279,16 +358,27 @@
         .summary-item {
             display: flex;
             justify-content: space-between;
-            padding: 12px 0;
-            border-bottom: 1px solid #e9ecef;
+            padding: 8px 0;
         }
         
         .summary-total {
-            font-weight: bold;
+            border-top: 1px solid #e9ecef;
+            padding-top: 12px;
+            margin-top: 12px;
             font-size: 1.1rem;
-            margin-top: 15px;
-            color: var(--primary-color);
         }
+
+        .summary-item span:last-child {
+            text-align: right;
+            flex: 1;
+        }
+
+        .summary-item[style*="white-space"] span:last-child {
+            white-space: pre-wrap;
+            word-break: break-word;
+            text-align: left;
+        }
+
         
         /* Responsive adjustments */
         @media (max-width: 768px) {
@@ -352,6 +442,8 @@
             color: white;
             padding: 40px 20px 20px;
             margin-top: 40px;
+            width: 100%;
+            margin-top: auto; 
         }
 
         .footer-content {
@@ -444,12 +536,58 @@
             }
         }
 
-        
+        #deliveryDate, #orderNotes {
+            width: 100%;
+            padding: 12px 15px;
+            margin: 10px 0;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
 
-        
+        #deliveryDate:focus, #orderNotes:focus {
+            border-color: var(--accent-color);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+        }
+
+        label {
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+
+        .summary-notes {
+            max-height: 100px;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .summary-notes.expanded {
+            max-height: none;
+        }
+
+        .show-more-btn {
+            background: none;
+            border: none;
+            color: var(--accent-color);
+            cursor: pointer;
+            padding: 5px 0;
+            font-size: 0.9rem;
+        }
     </style>
 </head>
 <body>
+    <div id="splash-screen">
+        <div class="logo-container"  id="splash-logo">
+            <img src="icon.png" alt="Company Logo" class="logo"  onerror="this.style.display='none'">
+        </div>
+        
+        <div id="splash-text">D-LAX CLOSET</div>
+        <div class="loading-spinner"></div>
+    </div>
+
+    <div id="page-content">
     <div class="top-bar">
         <div class="logo-container">
             <img src="icon.png" alt="Company Logo" class="logo" onerror="this.style.display='none'">
@@ -478,6 +616,15 @@
         <div id="productSelectionPage" class="page">
             <h2>Select Products</h2>
             <div class="product-grid" id="productGrid"></div>
+            <div style="margin-top: 20px; background: white; padding: 20px; border-radius: 8px;">
+                <h3 style="color: var(--primary-color); margin-bottom: 15px;">Additional Information</h3>
+                
+                <label for="deliveryDate" style="display: block; margin-bottom: 5px; color: var(--dark-color);">Expected Delivery Date:</label>
+                <input type="date" id="deliveryDate" style="margin-bottom: 15px;">
+                
+                <label for="orderNotes" style="display: block; margin-bottom: 5px; color: var(--dark-color);">Order Notes:</label>
+                <textarea id="orderNotes" rows="3" placeholder="Any special instructions..."></textarea>
+            </div>
             <button id="saveSelectionBtn">Save Selection</button>
         </div>
 
@@ -487,7 +634,7 @@
             <div class="summary-content" id="summaryContent"></div>
             <div class="button-group">
                 <button id="editOrderBtn" class="btn-outline" style="background-color: #2a6070ef; color: white;">Edit Order</button>
-                <button id="downloadBtn">Download Order</button>
+                <button id="downloadBtn">Download</button>
             </div>
             <button id="newOrderBtn" class="btn-outline" style="background-color: white; color:black">New Order</button>
         </div>
@@ -497,7 +644,7 @@
         <div class="footer-content">
             <div class="footer-section">
                 <h3>Contact Us</h3>
-                <p><i class="fas fa-phone"></i> +91 6380052131</p>
+                <p><i class="fas fa-phone"></i> +91 7358652246</p>
                 <p><i class="fas fa-envelope"></i> dlaxclosetbussiness@gmail.com</p>
                 <p><i class="fas fa-map-marker-alt"></i> Mathur, Chennai, Tamilnadu - 600068</p>
             </div>
@@ -517,20 +664,41 @@
             &copy; 2025 D-LAX Closet. All Rights Reserved.
         </div>
     </footer>
-
+    </div>
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 
     <script>
+        document.body.style.visibility = 'hidden';
+         document.addEventListener('DOMContentLoaded', function() {
+            // Show the body (splash screen will be visible, other content hidden)
+            document.body.style.visibility = 'visible';
+            
+            // Wait for everything to load
+            window.addEventListener('load', function() {
+                // Simulate loading time (you can remove this in production)
+                setTimeout(function() {
+                    var splashScreen = document.getElementById('splash-screen');
+                    splashScreen.style.opacity = '0';
+                    
+                    // Remove splash screen after fade out
+                    setTimeout(function() {
+                        splashScreen.style.display = 'none';
+                        // Add class to show the rest of the content
+                        document.body.classList.add('splash-complete');
+                    }, 500);
+                }, 2000); // 2 seconds splash screen duration
+            });
+        });
         // Store data
         let selectedProducts = {};
         let storeInfo = {};
         const products = [
-            { id: 1, name: "Design 1", imagepath: "./product_images/Design1.jpg" },
-            { id: 2, name: "Design 2", imagepath: "./product_images/Design2.jpg" },
-            { id: 3, name: "Design 3", imagepath: "./product_images/Design3.jpg" },
-            { id: 4, name: "Design 4", imagepath: "./product_images/Design4.jpg" },
-            { id: 5, name: "Design 5", imagepath: "./product_images/Design5.jpg" }
+            { id: 1, name: "Design 1", imagepath: "./product_images/Design1.jpg",  price: 1200 },
+            { id: 2, name: "Design 2", imagepath: "./product_images/Design2.jpg",  price: 1500 },
+            { id: 3, name: "Design 3", imagepath: "./product_images/Design3.jpg",  price: 1800 },
+            { id: 4, name: "Design 4", imagepath: "./product_images/Design4.jpg",  price: 2000 },
+            { id: 5, name: "Design 5", imagepath: "./product_images/Design5.jpg",  price: 2500 }
         ];
 
         // DOM elements
@@ -580,7 +748,9 @@
                 shopName: document.getElementById('shopName').value,
                 ownerName: document.getElementById('ownerName').value,
                 phoneNumber: document.getElementById('phoneNumber').value,
-                address: document.getElementById('address').value
+                address: document.getElementById('address').value,
+                deliveryDate: document.getElementById('deliveryDate').value, // Add this
+                orderNotes: document.getElementById('orderNotes').value      // Add this
             };
             selectedProducts = {};
             showPage('productSelection');
@@ -595,10 +765,11 @@
                 card.innerHTML = `
                     <div class="product-img-container">
                         <img src="${product.imagepath}" alt="${product.name}" class="product-img" style="object-fit:cover;"
-                             onerror="this.src='data:image/svg+xml;charset=UTF-8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\" fill=\"%23ddd\"></svg>
+                            onerror="this.src='data:image/svg+xml;charset=UTF-8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\" fill=\"%23ddd\"></svg>
                     </div>
                     <div class="product-info">
                         <h3 class="product-title">${product.name}</h3>
+                        <div style="margin-bottom: 10px; font-weight: 600;">₹${product.price}</div>
                         <div class="quantity-control">
                             <button class="quantity-btn" onclick="changeQuantity(${product.id}, -1)">-</button>
                             <div class="quantity-value" id="quantity-${product.id}">0</div>
@@ -626,6 +797,10 @@
 
         // Show summary
         function showSummaryPage() {
+            // Collect the additional fields
+            storeInfo.deliveryDate = document.getElementById('deliveryDate').value;
+            storeInfo.orderNotes = document.getElementById('orderNotes').value;
+
             const orderedProducts = products.filter(p => selectedProducts[p.id] > 0);
             if (orderedProducts.length === 0) {
                 alert('Please select at least one product');
@@ -646,33 +821,55 @@
                     <span style="font-weight: 600;">Address:</span>
                     <span>${storeInfo.address}</span>
                 </div>
+                <div class="summary-item">
+                    <span style="font-weight: 600;">Expected Delivery:</span>
+                    <span>${storeInfo.deliveryDate || 'Not specified'}</span>
+                </div>
+            `;
+
+            // Add order notes if they exist
+            if (storeInfo.orderNotes && storeInfo.orderNotes.trim() !== '') {
+                html += `
+                    <div style="margin-top: 15px;">
+                        <div class="summary-notes-label">Notes:</div>
+                        <div class="summary-notes">${storeInfo.orderNotes}</div>
+                    </div>
+                `;
+            }
+
+            html += `
                 <hr style="margin: 20px 0; border: none; border-top: 1px solid #e9ecef;">
                 <h4 style="color: var(--primary-color); margin-bottom: 15px;">Order Details:</h4>
             `;
 
             let totalItems = 0;
+            let subtotal = 0;
+            
             orderedProducts.forEach(p => {
                 const qty = selectedProducts[p.id];
+                const itemTotal = qty * p.price;
                 totalItems += qty;
+                subtotal += itemTotal;
+                
                 html += `
                     <div class="summary-item">
-                        <span>${p.name}</span>
-                        <span style="font-weight: 600;">${qty}</span>
+                        <span>${p.name} (₹${p.price} × ${qty})</span>
+                        <span style="font-weight: 600;">₹${itemTotal}</span>
                     </div>
                 `;
             });
 
             html += `
-                <div class="summary-item summary-total">
-                    <span>Total Items:</span>
-                    <span>${totalItems}</span>
+                <hr style="margin: 15px 0; border: none; border-top: 1px solid #e9ecef;">
+                <div class="summary-item">
+                    <span style="font-weight: 600;">Subtotal (${totalItems} items):</span>
+                    <span style="font-weight: 600;">₹${subtotal}</span>
                 </div>
             `;
             
             summaryContent.innerHTML = html;
             showPage('summary');
         }
-
         // Format phone number
         function formatPhoneNumber(phone) {
             if (phone.length === 10) {
@@ -682,53 +879,164 @@
         }
 
         // Download order
-        function downloadOrder() {
-            const now = new Date();
-            const formattedDate = now.toLocaleString();
-            
-            let content = `====================================\n`;
-            content += `          D-LAX Closet\n`;
-            content += `   Clothing store in Tamil Nadu\n`;
-            content += `------------------------------------\n`;
-            content += `Mathur, Chennai\n`;
-            content += `Phone: +91 7358652246\n`;
-            content += `Email: dlaxclosetbussiness@gmail.com\n`;
-            content += `=====================================\n\n`;
+        async function downloadOrder() {
+    try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        // Set initial y-position and page height
+        let yPos = 20;
+        const pageHeight = doc.internal.pageSize.height - 20;
+        
+        // Add title and date (centered)
+        doc.setFontSize(18);
+        doc.setTextColor(39, 92, 108);
+        doc.text("D-LAX CLOSET - ORDER SUMMARY", 105, yPos, { align: "center" });
+        yPos += 15;
+        
+        doc.setFontSize(12);
+        doc.setTextColor(0, 0, 0);
+        doc.text(`Generated on: ${new Date().toLocaleString()}`, 105, yPos, { align: "center" });
+        yPos += 20;
 
-            content += `Order Summary\n`;
-            content += `==============\n\n`;
-            content += `Store Name: ${storeInfo.shopName}\n`;
-            content += `Owner Name: ${storeInfo.ownerName}\n`;
-            content += `Phone: ${formatPhoneNumber(storeInfo.phoneNumber)}\n`;
-            content += `Address: ${storeInfo.address}\n\n`;
-            content += `Order Details:\n`;
-            content += `--------------\n`;
-            
-            let totalItems = 0;
-            products.forEach(p => {
-                if (selectedProducts[p.id] > 0) {
-                    content += `${p.name}: ${selectedProducts[p.id]}\n`;
-                    totalItems += selectedProducts[p.id];
+        // Add store info section
+        doc.setFontSize(14);
+        doc.text("STORE INFORMATION", 15, yPos);
+        yPos += 10;
+        
+        doc.setFontSize(12);
+        const storeInfoLines = [
+            `Shop Name: ${storeInfo.shopName}`,
+            `Owner Name: ${storeInfo.ownerName}`,
+            `Phone: ${formatPhoneNumber(storeInfo.phoneNumber)}`,
+            `Address: ${storeInfo.address}`,
+            `Expected Delivery: ${storeInfo.deliveryDate || 'Not specified'}`
+        ];
+        
+        // Add store info with line breaks
+        storeInfoLines.forEach(line => {
+            if (yPos > pageHeight - 30) {
+                doc.addPage();
+                yPos = 20;
+            }
+            doc.text(line, 15, yPos);
+            yPos += 10;
+        });
+        
+        yPos += 10;
+
+        // Add products section header
+        doc.setFontSize(14);
+        doc.text("ORDER DETAILS", 15, yPos);
+        yPos += 15;
+
+        let totalItems = 0;
+        let subtotal = 0;
+
+        // Process each product
+        for (const p of products) {
+            if (selectedProducts[p.id] > 0) {
+                const qty = selectedProducts[p.id];
+                const itemTotal = qty * p.price;
+                totalItems += qty;
+                subtotal += itemTotal;
+                
+                if (yPos > pageHeight - 70) {
+                    doc.addPage();
+                    yPos = 20;
                 }
-            });
-            
-            content += `\nTotal Items: ${totalItems}\n\n`;
-            content += `Generated on: ${formattedDate}`;
 
-            // Create filename
-            const filename = `${storeInfo.shopName.replace(/[^a-z0-9]/gi, '_')}_${storeInfo.phoneNumber}.txt`;
-            
-            // Create and trigger download
-            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+                let imgData;
+                try {
+                    imgData = await getBase64Image(p.imagepath);
+                } catch (error) {
+                    console.error("Image load failed:", p.imagepath);
+                    imgData = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+                }
+
+                doc.addImage(imgData, "JPEG", 15, yPos, 50, 50);
+                doc.text(`${p.name} (Rs: ${p.price} × ${qty})`, 70, yPos + 20);
+                doc.text(`Rs: ${itemTotal}`, 180, yPos + 20);
+                yPos += 60;
+            }
         }
+
+        // Add subtotal
+        if (yPos > pageHeight - 30) {
+            doc.addPage();
+            yPos = 20;
+        }
+        doc.setFontSize(14);
+        doc.text("Subtotal:", 15, yPos + 10);
+        doc.text(`${totalItems} items`, 70, yPos + 10);
+        doc.text(`Rs: ${subtotal}`, 180, yPos + 10);
+        yPos += 20;
+
+        // Add notes section if they exist
+        if (storeInfo.orderNotes && storeInfo.orderNotes.trim() !== '') {
+            if (yPos > pageHeight - 50) {
+                doc.addPage();
+                yPos = 20;
+            }
+            
+            doc.setFontSize(14);
+            doc.text("ORDER NOTES", 15, yPos);
+            yPos += 10;
+            
+            doc.setFontSize(12);
+            const splitNotes = doc.splitTextToSize(storeInfo.orderNotes, 180);
+            for (let i = 0; i < splitNotes.length; i++) {
+                if (yPos > pageHeight - 20) {
+                    doc.addPage();
+                    yPos = 20;
+                }
+                doc.text(splitNotes[i], 15, yPos);
+                yPos += 7;
+            }
+            yPos += 10;
+        }
+
+        // Format delivery date for filename (remove slashes)
+        const formattedDate = storeInfo.deliveryDate ? 
+            storeInfo.deliveryDate.replace(/-/g, '') : 'nodate';
+        
+        // Save PDF with new filename format
+        doc.save(`${storeInfo.shopName.replace(/[^a-z0-9]/gi, '_')}_${formattedDate}.pdf`);
+
+    } catch (error) {
+        console.error("PDF generation failed:", error);
+        alert("Failed to generate PDF. Check console for details.");
+    }
+}
+
+/**
+ * Converts image URL to Base64 (handles CORS)
+ */
+async function getBase64Image(url) {
+    return new Promise((resolve) => {
+        // If running on file://, use a placeholder
+        if (window.location.protocol === 'file:') {
+            console.warn("CORS blocked local file access. Using placeholder image.");
+            resolve("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNlZWVlZWUiLz48dGV4dCB4PSI1MCIgeT0iNTAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY2NiI+SW1hZ2UgTm90IExvYWRlZDwvdGV4dD48L3N2Zz4=");
+        }
+
+        const img = new Image();
+        img.crossOrigin = "Anonymous";
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            resolve(canvas.toDataURL('image/jpeg'));
+        };
+        img.onerror = () => {
+            console.error("Image load failed:", url);
+            resolve("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=");
+        };
+        img.src = url;
+    });
+}
 
         // Start new order
         function startNewOrder() {
@@ -743,5 +1051,7 @@
         // Initialize when page loads
         window.onload = init;
     </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
 </body>
 </html>
