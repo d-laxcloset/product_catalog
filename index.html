@@ -1025,6 +1025,15 @@
     }
 }
 
+window.addEventListener('beforeunload', function (event) {
+  // The preventDefault() method cancels the event if it is cancelable, meaning that the default action that belongs to the event will not occur.
+  event.preventDefault();
+  // Chrome requires returnValue to be set
+  event.returnValue = '';
+  // Display the alert
+  alert("Page is reloading. Changes may not be saved.");
+});
+
 /**
  * Converts image URL to Base64 (handles CORS)
  */
