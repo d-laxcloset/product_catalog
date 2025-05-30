@@ -715,8 +715,34 @@
         // Add this to your addEventListeners function
         printBtn.addEventListener('click', printThermalReceipt);
 
+        async function generateMobilePrintablePDF() {
+    try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        // Same PDF generation code as your downloadBillPDF function
+        // But with simpler formatting for printing
+        
+        // Instead of saving, open in new tab for mobile printing options
+        const pdfData = doc.output('datauristring');
+        window.open(pdfData);
+        
+    } catch (error) {
+        console.error("Mobile print failed:", error);
+        alert("For printing on mobile, please use the Share button and select your printing option.");
+    }
+}
+
         // Add this new function to handle thermal printing
         function printThermalReceipt() {
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+            if (isMobile) {
+                // For mobile, generate a PDF and let user choose how to print
+                generateMobilePrintablePDF();
+                return;
+            }
+
             // Create a simple text-based receipt for thermal printing
             let receiptText = `
                 D-LAX CLOSET\n
@@ -964,7 +990,8 @@ async function downloadBillPDF() {
         console.error("Bill PDF generation failed:", error);
         alert("Failed to generate bill PDF. Check console for details.");
     }
-}        // Store data
+} 
+       // Store data
         let selectedProducts = {};
         let storeInfo = {};
         const products = [
