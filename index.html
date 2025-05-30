@@ -827,37 +827,19 @@ async function downloadBillPDF() {
         const doc = new jsPDF();
         
         // Add logo at the top (centered)
-         try {
-            const logoData = await getBase64Image('icon.png');
-            // Smaller logo size
-            const logoWidth = 15; // Reduced from 20
-            const logoHeight = 15; // Reduced from 20
-            
-            // Calculate position for center
-            const pageWidth = doc.internal.pageSize.getWidth();
-            const xPos = (pageWidth - logoWidth) / 2;
-            
-            // Create circular clipping mask
-            doc.setDrawColor(39, 92, 108); // Your primary color for border
-            doc.setFillColor(255, 255, 255); // White background
-            doc.circle(xPos + logoWidth/2, 15 + logoHeight/2, logoWidth/2, 'FD'); // Filled circle with border
-            
-            // Add logo with circular clipping
-            doc.clip(); // Start clipping
-            doc.addImage(logoData, 'JPEG', xPos, 15, logoWidth, logoHeight, undefined, 'FAST');
-            doc.doClip(); // End clipping
-            
+        try {
+            const logoData = await getBase64Image('icon.png'); // Use your logo path
+            // Add logo with width 30 and auto height (maintain aspect ratio)
+            const logoWidth = 30;
+            const logoHeight = (30 * 150) / 150; // Assuming original logo is 150x150
+            doc.addImage(logoData, 'JPEG', (doc.internal.pageSize.getWidth() - logoWidth) / 2, 10, logoWidth, logoHeight);
         } catch (error) {
             console.error("Logo load failed:", error);
-            // Fallback to text if logo fails
-            doc.setFontSize(14);
-            doc.setTextColor(39, 92, 108);
-            doc.text("D-LAX CLOSET", 105, 20, { align: "center" });
+            // If logo fails to load, just continue without it
         }
         
-        
         // Set initial y-position below logo
-        let yPos = 35; // Increased to account for logo space
+        let yPos = 40; // Increased to account for logo space
         
         // Add company header (centered)
         doc.setFontSize(18);
