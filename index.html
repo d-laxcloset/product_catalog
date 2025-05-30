@@ -719,99 +719,99 @@
         // Add this new function to handle thermal printing
         function printThermalReceipt() {
     // Create a printable element with proper styling
-    const printContainer = document.createElement('div');
-    printContainer.id = 'print-container';
-    printContainer.style.fontFamily = 'monospace';
-    printContainer.style.fontSize = '12px';
-    printContainer.style.padding = '5px';
-    printContainer.style.whiteSpace = 'pre-line';
-    printContainer.style.width = '80mm';
-    printContainer.style.margin = '0 auto';
-    printContainer.style.lineHeight = '1.2';
-    
-    // Build the receipt content with line breaks
-    let receiptText = `D-LAX CLOSET\n`;
-    receiptText += `======================\n`;
-    receiptText += `STORE INFORMATION\n`;
-    receiptText += `======================\n`;
-    receiptText += `Shop: ${storeInfo.shopName}\n`;
-    receiptText += `Owner: ${storeInfo.ownerName}\n`;
-    receiptText += `Phone: ${formatPhoneNumber(storeInfo.phoneNumber)}\n`;
-    receiptText += `Address: ${storeInfo.address}\n`;
-    receiptText += `Delivery: ${storeInfo.deliveryDate || 'Not specified'}\n\n`;
-    receiptText += `======================\n`;
-    receiptText += `ORDER DETAILS\n`;
-    receiptText += `======================\n`;
-
-    // Add products
-    let totalItems = 0;
-    let subtotal = 0;
-    
-    products.forEach(p => {
-        if (selectedProducts[p.id] > 0) {
-            const qty = selectedProducts[p.id];
-            const itemTotal = qty * p.price;
-            totalItems += qty;
-            subtotal += itemTotal;
-            
-            receiptText += `${p.name} (${qty} × ₹${p.price}) ₹${itemTotal}\n`;
-        }
-    });
-
-    // Add totals
-    receiptText += `======================\n`;
-    receiptText += `Subtotal: ₹${subtotal}\n`;
-    receiptText += `Total Items: ${totalItems}\n\n`;
-    receiptText += `======================\n`;
-    receiptText += `Order Notes:\n`;
-    receiptText += `${storeInfo.orderNotes || 'None'}\n\n`;
-    receiptText += `Generated: ${new Date().toLocaleString()}\n`;
-    receiptText += `======================\n`;
-    receiptText += `Thank you for your order!\n`;
-
-    // Use textContent instead of innerHTML to preserve line breaks
-    printContainer.textContent = receiptText;
-
-    // Create a print-specific stylesheet
-    const style = document.createElement('style');
-    style.id = 'print-styles';
-    style.textContent = `
-        @media print {
-            body * {
-                visibility: hidden;
-            }
-            #print-container, #print-container * {
-                visibility: visible;
-            }
-            #print-container {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 80mm;
-                margin: 0;
-                padding: 5px;
-                font-family: monospace;
-                font-size: 12px;
-                white-space: pre-line;
-                line-height: 1.2;
-            }
-        }
-    `;
-
-    // Add elements to the DOM
-    document.body.appendChild(printContainer);
-    document.head.appendChild(style);
-
-    // Print and clean up
-    setTimeout(() => {
-        window.print();
+        const printContainer = document.createElement('div');
+        printContainer.id = 'print-container';
+        printContainer.style.fontFamily = 'monospace';
+        printContainer.style.fontSize = '12px';
+        printContainer.style.padding = '5px';
+        printContainer.style.whiteSpace = 'pre-line';
+        printContainer.style.width = '80mm';
+        printContainer.style.margin = '0 auto';
+        printContainer.style.lineHeight = '1.2';
         
-        // Clean up after printing
+        // Build the receipt content with line breaks
+        let receiptText = `D-LAX CLOSET\n`;
+        receiptText += `======================\n`;
+        receiptText += `STORE INFORMATION\n`;
+        receiptText += `======================\n`;
+        receiptText += `Shop: ${storeInfo.shopName}\n`;
+        receiptText += `Owner: ${storeInfo.ownerName}\n`;
+        receiptText += `Phone: ${formatPhoneNumber(storeInfo.phoneNumber)}\n`;
+        receiptText += `Address: ${storeInfo.address}\n`;
+        receiptText += `Delivery: ${storeInfo.deliveryDate || 'Not specified'}\n\n`;
+        receiptText += `======================\n`;
+        receiptText += `ORDER DETAILS\n`;
+        receiptText += `======================\n`;
+
+        // Add products
+        let totalItems = 0;
+        let subtotal = 0;
+        
+        products.forEach(p => {
+            if (selectedProducts[p.id] > 0) {
+                const qty = selectedProducts[p.id];
+                const itemTotal = qty * p.price;
+                totalItems += qty;
+                subtotal += itemTotal;
+                
+                receiptText += `${p.name} (${qty} × ₹${p.price}) ₹${itemTotal}\n`;
+            }
+        });
+
+        // Add totals
+        receiptText += `======================\n`;
+        receiptText += `Subtotal: ₹${subtotal}\n`;
+        receiptText += `Total Items: ${totalItems}\n\n`;
+        receiptText += `======================\n`;
+        receiptText += `Order Notes:\n`;
+        receiptText += `${storeInfo.orderNotes || 'None'}\n\n`;
+        receiptText += `Generated: ${new Date().toLocaleString()}\n`;
+        receiptText += `======================\n`;
+        receiptText += `Thank you for your order!\n`;
+
+        // Use textContent instead of innerHTML to preserve line breaks
+        printContainer.textContent = receiptText;
+
+        // Create a print-specific stylesheet
+        const style = document.createElement('style');
+        style.id = 'print-styles';
+        style.textContent = `
+            @media print {
+                body * {
+                    visibility: hidden;
+                }
+                #print-container, #print-container * {
+                    visibility: visible;
+                }
+                #print-container {
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    width: 80mm;
+                    margin: 0;
+                    padding: 5px;
+                    font-family: monospace;
+                    font-size: 12px;
+                    white-space: pre-line;
+                    line-height: 1.2;
+                }
+            }
+        `;
+
+        // Add elements to the DOM
+        document.body.appendChild(printContainer);
+        document.head.appendChild(style);
+
+        // Print and clean up
         setTimeout(() => {
-            printContainer.remove();
-            style.remove();
-        }, 1000);
-    }, 300);
+            window.print();
+            
+            // Clean up after printing
+            setTimeout(() => {
+                printContainer.remove();
+                style.remove();
+            }, 1000);
+        }, 300);
 }
 
         // Add this with your other DOM element selections
@@ -827,19 +827,37 @@ async function downloadBillPDF() {
         const doc = new jsPDF();
         
         // Add logo at the top (centered)
-        try {
-            const logoData = await getBase64Image('icon.png'); // Use your logo path
-            // Add logo with width 30 and auto height (maintain aspect ratio)
-            const logoWidth = 30;
-            const logoHeight = (30 * 150) / 150; // Assuming original logo is 150x150
-            doc.addImage(logoData, 'JPEG', (doc.internal.pageSize.getWidth() - logoWidth) / 2, 10, logoWidth, logoHeight);
+         try {
+            const logoData = await getBase64Image('icon.png');
+            // Smaller logo size
+            const logoWidth = 15; // Reduced from 20
+            const logoHeight = 15; // Reduced from 20
+            
+            // Calculate position for center
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const xPos = (pageWidth - logoWidth) / 2;
+            
+            // Create circular clipping mask
+            doc.setDrawColor(39, 92, 108); // Your primary color for border
+            doc.setFillColor(255, 255, 255); // White background
+            doc.circle(xPos + logoWidth/2, 15 + logoHeight/2, logoWidth/2, 'FD'); // Filled circle with border
+            
+            // Add logo with circular clipping
+            doc.clip(); // Start clipping
+            doc.addImage(logoData, 'JPEG', xPos, 15, logoWidth, logoHeight, undefined, 'FAST');
+            doc.doClip(); // End clipping
+            
         } catch (error) {
             console.error("Logo load failed:", error);
-            // If logo fails to load, just continue without it
+            // Fallback to text if logo fails
+            doc.setFontSize(14);
+            doc.setTextColor(39, 92, 108);
+            doc.text("D-LAX CLOSET", 105, 20, { align: "center" });
         }
         
+        
         // Set initial y-position below logo
-        let yPos = 40; // Increased to account for logo space
+        let yPos = 35; // Increased to account for logo space
         
         // Add company header (centered)
         doc.setFontSize(18);
