@@ -960,14 +960,60 @@ async function downloadBillPDF() {
         doc.text("D-LAX CLOSET - Mathur, Chennai", 105, yPos, { align: "center" });
         
         // Save PDF with a meaningful name
-        const fileName = `DLAX_${storeInfo.shopName.replace(/ /g, '_')}_${new Date().toISOString().slice(0,10)}.pdf`;
-        doc.save(fileName);
-
+        const fileName = `DLAX_Order_${new Date().toISOString().slice(0,10)}.pdf`;
+        const pdfDataUrl = doc.output('datauristring');
+        
+        // On mobile devices, we can try to share via the Web Share API
+        if (navigator.share) {
+            const blob = await (await fetch(pdfDataUrl)).blob();
+            const file = new File([blob], fileName, { type: 'application/pdf' });
+            
+            await navigator.share({
+                title: `Order from ${storeInfo.shopName}`,
+                text: `Order details for ${storeInfo.shopName}`,
+                files: [file]
+            });
+        } 
+        // For desktop or when Web Share API isn't available
+        else {
+            // Convert PDF to blob and create object URL
+            const blob = await (await fetch(pdfDataUrl)).blob();
+            const pdfUrl = URL.createObjectURL(blob);
+            
+            // Create a download link as fallback
+            const downloadLink = document.createElement('a');
+            downloadLink.href = pdfUrl;
+            downloadLink.download = fileName;
+            
+            // Create WhatsApp share link
+            const whatsappMessage = `Order Details for ${storeInfo.shopName}\n\n` +
+                                  `Owner: ${storeInfo.ownerName}\n` +
+                                  `Phone: ${storeInfo.phoneNumber}\n` +
+                                  `Delivery Date: ${storeInfo.deliveryDate || 'Not specified'}\n\n` +
+                                  `See attached PDF for full details`;
+            
+            const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(whatsappMessage)}`;
+            
+            // Open WhatsApp in a new tab
+            window.open(whatsappUrl, '_blank');
+            
+            // Trigger download as well
+            downloadLink.click();
+            
+            // Clean up
+            setTimeout(() => {
+                URL.revokeObjectURL(pdfUrl);
+                document.body.removeChild(downloadLink);
+            }, 100);
+        }
     } catch (error) {
-        console.error("Bill PDF generation failed:", error);
-        alert("Failed to generate bill PDF. Check console for details.");
+        console.error('WhatsApp share failed:', error);
+        alert('Could not share via WhatsApp. The PDF has been downloaded instead.');
+        downloadOrder(); // Fallback to regular download
     }
-}        // Store data
+}
+
+        // Store data
         let selectedProducts = {};
         let storeInfo = {};
         const products = [
