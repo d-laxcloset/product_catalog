@@ -649,7 +649,9 @@
             <h2>Order Summary</h2>
             <div class="summary-content" id="summaryContent"></div>
             <div class="button-group">
-                <button id="editOrderBtn" class="btn-outline" style="background-color: #2a6070ef; color: white;">Edit Order</button>
+                <button id="editOrderBtn" class="btn-outline" style="background-color: #2a6070ef; color: white;">Edit</button>
+                <button id="printBtn">Print</button>
+                <button id="downloadBillBtn">Share</button>
                 <button id="downloadBtn">Download</button>
             </div>
             <button id="newOrderBtn" class="btn-outline" style="background-color: white; color:black">New Order</button>
@@ -706,7 +708,263 @@
                 }, 2000); // 2 seconds splash screen duration
             });
         });
-        // Store data
+
+        // Add this with your other DOM element selections
+        const printBtn = document.getElementById('printBtn');
+
+        // Add this to your addEventListeners function
+        printBtn.addEventListener('click', printThermalReceipt);
+
+        // Add this new function to handle thermal printing
+        function printThermalReceipt() {
+            // Create a simple text-based receipt for thermal printing
+            let receiptText = `
+                D-LAX CLOSET\n
+                ======================\n
+                STORE INFORMATION\n
+                ======================\n
+                Shop: ${storeInfo.shopName}\n
+                Owner: ${storeInfo.ownerName}\n
+                Phone: ${formatPhoneNumber(storeInfo.phoneNumber)}\n
+                Address: ${storeInfo.address}\n
+                Delivery: ${storeInfo.deliveryDate || 'Not specified'}\n
+                \n
+                ======================\n
+                ORDER DETAILS\n
+                ======================\n
+            `;
+
+            // Add products
+            let totalItems = 0;
+            let subtotal = 0;
+            
+            products.forEach(p => {
+                if (selectedProducts[p.id] > 0) {
+                    const qty = selectedProducts[p.id];
+                    const itemTotal = qty * p.price;
+                    totalItems += qty;
+                    subtotal += itemTotal;
+                    
+                    receiptText += `${p.name} (${qty} × ₹${p.price}) ₹${itemTotal}\n`;
+                }
+            });
+
+            // Add totals
+            receiptText += `
+                ======================\n
+                Subtotal: ₹${subtotal}\n
+                Total Items: ${totalItems}\n
+                \n
+                ======================\n
+                Order Notes:\n
+                ${storeInfo.orderNotes || 'None'}\n
+                \n
+                Generated: ${new Date().toLocaleString()}\n
+                ======================\n
+                Thank you for your order!\n
+            `;
+
+            // Create a new window for printing
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Thermal Print</title>
+                    <style>
+                        body {
+                            font-family: monospace;
+                            font-size: 12px;
+                            width: 80mm;
+                            margin: 0;
+                            padding: 5px;
+                            white-space: pre-line;
+                        }
+                        @media print {
+                            body {
+                                width: 80mm;
+                            }
+                            @page {
+                                size: 80mm 200mm;
+                                margin: 0;
+                            }
+                        }
+                    </style>
+                </head>
+                <body onload="window.print(); window.close();">
+                    ${receiptText}
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+
+        // Add this with your other DOM element selections
+const downloadBillBtn = document.getElementById('downloadBillBtn');
+
+// Add this to your addEventListeners function
+downloadBillBtn.addEventListener('click', downloadBillPDF);
+
+// Add this new function to generate a bill-style PDF
+async function downloadBillPDF() {
+    try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        // Add logo at the top (centered)
+        try {
+            const logoData = await getBase64Image('icon.png'); // Use your logo path
+            // Add logo with width 30 and auto height (maintain aspect ratio)
+            const logoWidth = 30;
+            const logoHeight = (30 * 150) / 150; // Assuming original logo is 150x150
+            doc.addImage(logoData, 'JPEG', (doc.internal.pageSize.getWidth() - logoWidth) / 2, 10, logoWidth, logoHeight);
+        } catch (error) {
+            console.error("Logo load failed:", error);
+            // If logo fails to load, just continue without it
+        }
+        
+        // Set initial y-position below logo
+        let yPos = 40; // Increased to account for logo space
+        
+        // Add company header (centered)
+        doc.setFontSize(18);
+        doc.setTextColor(39, 92, 108);
+        doc.text("D-LAX CLOSET", 105, yPos, { align: "center" });
+        yPos += 10;
+        
+        doc.setFontSize(14);
+        doc.text("INVOICE", 105, yPos, { align: "center" });
+        yPos += 15;
+        
+        // Add store info
+        doc.setFontSize(12);
+        doc.setTextColor(0, 0, 0);
+        doc.text(`Shop: ${storeInfo.shopName}`, 15, yPos);
+        doc.text(`Date: ${new Date().toLocaleDateString()}`, 160, yPos);
+        yPos += 8;
+        
+        doc.text(`Owner: ${storeInfo.ownerName}`, 15, yPos);
+        doc.text(`Phone: ${formatPhoneNumber(storeInfo.phoneNumber)}`, 160, yPos);
+        yPos += 8;
+        
+        doc.text(`Delivery: ${storeInfo.deliveryDate || 'Not specified'}`, 15, yPos);
+        yPos += 15;
+        
+        // Add line separator
+        doc.setDrawColor(39, 92, 108);
+        doc.setLineWidth(0.5);
+        doc.line(15, yPos, 195, yPos);
+        yPos += 10;
+        
+        // Add table header
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'bold');
+        doc.text("Item", 20, yPos);
+        doc.text("Qty", 120, yPos);
+        doc.text("Price", 160, yPos);
+        doc.text("Total", 180, yPos);
+        yPos += 8;
+        
+        // Add line under header
+        doc.line(15, yPos, 195, yPos);
+        yPos += 10;
+        
+        doc.setFont(undefined, 'normal');
+        
+        let totalItems = 0;
+        let subtotal = 0;
+        const imageSize = 15; // Small icon size for products
+        
+        // Process each product
+        for (const p of products) {
+            if (selectedProducts[p.id] > 0) {
+                const qty = selectedProducts[p.id];
+                const itemTotal = qty * p.price;
+                totalItems += qty;
+                subtotal += itemTotal;
+                
+                // Add product image (small icon size)
+                try {
+                    const imgData = await getBase64Image(p.imagepath);
+                    doc.addImage(imgData, "JPEG", 20, yPos, imageSize, imageSize);
+                } catch (error) {
+                    console.error("Image load failed:", p.imagepath);
+                    // Use placeholder if image fails
+                    doc.setFillColor(200, 200, 200);
+                    doc.rect(20, yPos, imageSize, imageSize, 'F');
+                }
+                
+                // Add product details
+                doc.text(p.name, 40, yPos + 10);
+                doc.text(qty.toString(), 120, yPos + 10);
+                doc.text(`${p.price}/-`, 160, yPos + 10);
+                doc.text(`${itemTotal}/-`, 180, yPos + 10);
+                
+                yPos += 20;
+                
+                // Add new page if we're running out of space
+                if (yPos > 250) {
+                    doc.addPage();
+                    yPos = 20;
+                    
+                    // Add header on new page
+                    doc.setFontSize(12);
+                    doc.setFont(undefined, 'bold');
+                    doc.text("Item", 20, yPos);
+                    doc.text("Qty", 120, yPos);
+                    doc.text("Price", 160, yPos);
+                    doc.text("Total", 180, yPos);
+                    yPos += 15;
+                    doc.setFont(undefined, 'normal');
+                }
+            }
+        }
+        
+        // Add totals section
+        yPos += 10;
+        doc.line(160, yPos, 195, yPos);
+        yPos += 5;
+        
+        doc.setFont(undefined, 'bold');
+        doc.text("Subtotal:", 160, yPos);
+        doc.text(`${subtotal}/-`, 180, yPos);
+        yPos += 8;
+        
+        doc.text("Total Items:", 160, yPos);
+        doc.text(totalItems.toString(), 185, yPos);
+        yPos += 15;
+        
+        // Add notes if they exist
+        if (storeInfo.orderNotes && storeInfo.orderNotes.trim() !== '') {
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(10);
+            doc.text("Order Notes:", 15, yPos);
+            yPos += 5;
+            
+            const splitNotes = doc.splitTextToSize(storeInfo.orderNotes, 180);
+            for (let i = 0; i < splitNotes.length; i++) {
+                doc.text(splitNotes[i], 15, yPos);
+                yPos += 5;
+            }
+        }
+        
+        // Add footer
+        yPos = 280;
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        doc.text("Thank you for your order!", 105, yPos, { align: "center" });
+        yPos += 5;
+        doc.text("D-LAX CLOSET - Mathur, Chennai", 105, yPos, { align: "center" });
+        
+        // Save PDF with a meaningful name
+        const fileName = `DLAX_${storeInfo.shopName.replace(/ /g, '_')}_${new Date().toISOString().slice(0,10)}.pdf`;
+        doc.save(fileName);
+
+    } catch (error) {
+        console.error("Bill PDF generation failed:", error);
+        alert("Failed to generate bill PDF. Check console for details.");
+    }
+}        // Store data
         let selectedProducts = {};
         let storeInfo = {};
         const products = [
@@ -736,6 +994,8 @@
         function init() {
             addEventListeners();
             renderProducts();
+            printBtn.addEventListener('click', printThermalReceipt);
+            downloadBillBtn.addEventListener('click', downloadBillPDF);
         }
 
         // Event listeners
