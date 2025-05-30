@@ -826,6 +826,18 @@ async function downloadBillPDF() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         
+        // Add logo at the top (centered)
+        try {
+            const logoData = await getBase64Image('icon.png'); // Use your logo path
+            // Add logo with width 30 and auto height (maintain aspect ratio)
+            const logoWidth = 30;
+            const logoHeight = (30 * 150) / 150; // Assuming original logo is 150x150
+            doc.addImage(logoData, 'JPEG', (doc.internal.pageSize.getWidth() - logoWidth) / 2, 10, logoWidth, logoHeight);
+        } catch (error) {
+            console.error("Logo load failed:", error);
+            // If logo fails to load, just continue without it
+        }
+        
         // Set initial y-position below logo
         let yPos = 40; // Increased to account for logo space
         
