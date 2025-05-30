@@ -717,31 +717,50 @@
         printBtn.addEventListener('click', printThermalReceipt);
 
         // Add this new function to handle thermal printing
-        function printThermalReceipt() {
-    // Create a printable element with proper styling
-        const printContainer = document.createElement('div');
-        printContainer.id = 'print-container';
-        printContainer.style.fontFamily = 'monospace';
-        printContainer.style.fontSize = '12px';
-        printContainer.style.padding = '5px';
-        printContainer.style.whiteSpace = 'pre-line';
-        printContainer.style.width = '80mm';
-        printContainer.style.margin = '0 auto';
-        printContainer.style.lineHeight = '1.2';
+        async function printThermalReceipt() {
+    // Check if the browser supports the WebUSB API (Chrome/Edge recommended)
+    if (!navigator.usb) {
+        alert("WebUSB not supported. Please use Chrome or Edge browser.");
+        return;
+    }
+
+    try {
+        // Request access to the thermal printer (vendor-specific IDs may be needed)
+        const device = await navigator.usb.requestDevice({
+            filters: [{ classCode: 0x07 }] // Printer class
+        });
+
+        await device.open();
+        await device.selectConfiguration(1);
+        await device.claimInterface(0);
+
+        // Initialize printer
+        const init = new Uint8Array([0x1B, 0x40]); // ESC @ - Initialize printer
+        await device.transferOut(1, init);
+
+        // Build ESC/POS commands for the receipt
+        let commands = [];
         
-        // Build the receipt content with line breaks
-        let receiptText = `D-LAX CLOSET\n`;
-        receiptText += `======================\n`;
-        receiptText += `STORE INFORMATION\n`;
-        receiptText += `======================\n`;
-        receiptText += `Shop: ${storeInfo.shopName}\n`;
-        receiptText += `Owner: ${storeInfo.ownerName}\n`;
-        receiptText += `Phone: ${formatPhoneNumber(storeInfo.phoneNumber)}\n`;
-        receiptText += `Address: ${storeInfo.address}\n`;
-        receiptText += `Delivery: ${storeInfo.deliveryDate || 'Not specified'}\n\n`;
-        receiptText += `======================\n`;
-        receiptText += `ORDER DETAILS\n`;
-        receiptText += `======================\n`;
+        // Add initialization and settings
+        commands.push(0x1B, 0x40); // Initialize
+        commands.push(0x1B, 0x21, 0x00); // Reset text mode
+        commands.push(0x1B, 0x61, 0x01); // Center align
+        
+        // Title (double height)
+        commands.push(0x1B, 0x21, 0x30); // Double height
+        addText(commands, "D-LAX CLOSET\n");
+        commands.push(0x1B, 0x21, 0x00); // Normal text
+        addText(commands, "======================\n");
+        addText(commands, "STORE INFORMATION\n");
+        addText(commands, "======================\n");
+        addText(commands, `Shop: ${storeInfo.shopName}\n`);
+        addText(commands, `Owner: ${storeInfo.ownerName}\n`);
+        addText(commands, `Phone: ${formatPhoneNumber(storeInfo.phoneNumber)}\n`);
+        addText(commands, `Address: ${storeInfo.address}\n`);
+        addText(commands, `Delivery: ${storeInfo.deliveryDate || 'Not specified'}\n\n`);
+        addText(commands, "======================\n");
+        addText(commands, "ORDER DETAILS\n");
+        addText(commands, "======================\n");
 
         // Add products
         let totalItems = 0;
@@ -754,66 +773,98 @@
                 totalItems += qty;
                 subtotal += itemTotal;
                 
-                receiptText += `${p.name} (${qty} × ₹${p.price}) ₹${itemTotal}\n`;
+                addText(commands, `${p.name} (${qty} × ₹${p.price}) ₹${itemTotal}\n`);
             }
         });
 
         // Add totals
-        receiptText += `======================\n`;
-        receiptText += `Subtotal: ₹${subtotal}\n`;
-        receiptText += `Total Items: ${totalItems}\n\n`;
-        receiptText += `======================\n`;
-        receiptText += `Order Notes:\n`;
-        receiptText += `${storeInfo.orderNotes || 'None'}\n\n`;
-        receiptText += `Generated: ${new Date().toLocaleString()}\n`;
-        receiptText += `======================\n`;
-        receiptText += `Thank you for your order!\n`;
+        addText(commands, "======================\n");
+        addText(commands, `Subtotal: ₹${subtotal}\n`);
+        addText(commands, `Total Items: ${totalItems}\n\n`);
+        addText(commands, "======================\n");
+        addText(commands, "Order Notes:\n");
+        addText(commands, `${storeInfo.orderNotes || 'None'}\n\n`);
+        addText(commands, `Generated: ${new Date().toLocaleString()}\n`);
+        addText(commands, "======================\n");
+        addText(commands, "Thank you for your order!\n");
 
-        // Use textContent instead of innerHTML to preserve line breaks
-        printContainer.textContent = receiptText;
+        // Add cut command (partial cut)
+        commands.push(0x1D, 0x56, 0x41, 0x10); // GS V 65 0 - Partial cut
 
-        // Create a print-specific stylesheet
-        const style = document.createElement('style');
-        style.id = 'print-styles';
-        style.textContent = `
-            @media print {
-                body * {
-                    visibility: hidden;
-                }
-                #print-container, #print-container * {
-                    visibility: visible;
-                }
-                #print-container {
-                    position: absolute;
-                    left: 0;
-                    top: 0;
-                    width: 80mm;
-                    margin: 0;
-                    padding: 5px;
-                    font-family: monospace;
-                    font-size: 12px;
-                    white-space: pre-line;
-                    line-height: 1.2;
-                }
-            }
-        `;
-
-        // Add elements to the DOM
-        document.body.appendChild(printContainer);
-        document.head.appendChild(style);
-
-        // Print and clean up
+        // Convert commands to Uint8Array
+        const data = new Uint8Array(commands);
+        
+        // Send to printer
+        await device.transferOut(1, data);
+        
+        // Close connection
+        await device.close();
+    } catch (error) {
+        console.error("Printing failed:", error);
+        alert(`Printing error: ${error.message}`);
+        
+        // Fallback to regular print dialog if direct printing fails
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`<pre style="font-family: monospace; font-size: 12px; width: 80mm;">`);
+        printWindow.document.write(getReceiptText());
+        printWindow.document.write('</pre>');
+        printWindow.document.close();
+        printWindow.focus();
         setTimeout(() => {
-            window.print();
-            
-            // Clean up after printing
-            setTimeout(() => {
-                printContainer.remove();
-                style.remove();
-            }, 1000);
-        }, 300);
+            printWindow.print();
+            printWindow.close();
+        }, 500);
+    }
 }
 
+// Helper function to add text to ESC/POS commands
+function addText(commands, text) {
+    for (let i = 0; i < text.length; i++) {
+        commands.push(text.charCodeAt(i));
+    }
+}
+
+// Helper function to generate receipt text (for fallback)
+function getReceiptText() {
+    let receiptText = `D-LAX CLOSET\n`;
+    receiptText += `======================\n`;
+    receiptText += `STORE INFORMATION\n`;
+    receiptText += `======================\n`;
+    receiptText += `Shop: ${storeInfo.shopName}\n`;
+    receiptText += `Owner: ${storeInfo.ownerName}\n`;
+    receiptText += `Phone: ${formatPhoneNumber(storeInfo.phoneNumber)}\n`;
+    receiptText += `Address: ${storeInfo.address}\n`;
+    receiptText += `Delivery: ${storeInfo.deliveryDate || 'Not specified'}\n\n`;
+    receiptText += `======================\n`;
+    receiptText += `ORDER DETAILS\n`;
+    receiptText += `======================\n`;
+
+    let totalItems = 0;
+    let subtotal = 0;
+    
+    products.forEach(p => {
+        if (selectedProducts[p.id] > 0) {
+            const qty = selectedProducts[p.id];
+            const itemTotal = qty * p.price;
+            totalItems += qty;
+            subtotal += itemTotal;
+            
+            receiptText += `${p.name} (${qty} × ₹${p.price}) ₹${itemTotal}\n`;
+        }
+    });
+
+    receiptText += `======================\n`;
+    receiptText += `Subtotal: ₹${subtotal}\n`;
+    receiptText += `Total Items: ${totalItems}\n\n`;
+    receiptText += `======================\n`;
+    receiptText += `Order Notes:\n`;
+    receiptText += `${storeInfo.orderNotes || 'None'}\n\n`;
+    receiptText += `Generated: ${new Date().toLocaleString()}\n`;
+    receiptText += `======================\n`;
+    receiptText += `Thank you for your order!\n`;
+    
+    return receiptText;
+}
         // Add this with your other DOM element selections
 const downloadBillBtn = document.getElementById('downloadBillBtn');
 
