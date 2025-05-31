@@ -750,162 +750,150 @@
         printBtn.addEventListener('click', printThermalReceipt);
 
         // Add this new function to handle thermal printing
-        async function printThermalReceipt() {
+        function printThermalReceipt() {
+    // Create a print window
+    const printWindow = window.open('', '_blank');
+    
     // Get discount and GST values
     const discountPercentage = parseInt(document.getElementById('discountPercentage').value);
     const gstPercentage = parseInt(document.getElementById('gstPercentage').value);
-
-    // Check if the browser supports the WebUSB API (Chrome/Edge recommended)
-    if (!navigator.usb) {
-        alert("WebUSB not supported. Please use Chrome or Edge browser.");
-        return;
-    }
-
-    try {
-        // Request access to the thermal printer (vendor-specific IDs may be needed)
-        const device = await navigator.usb.requestDevice({
-            filters: [{ classCode: 0x07 }] // Printer class
-        });
-
-        await device.open();
-        await device.selectConfiguration(1);
-        await device.claimInterface(0);
-
-        // Initialize printer
-        const init = new Uint8Array([0x1B, 0x40]); // ESC @ - Initialize printer
-        await device.transferOut(1, init);
-
-        // Build ESC/POS commands for the receipt
-        let commands = [];
-        
-        // Add initialization and settings
-        commands.push(0x1B, 0x40); // Initialize
-        commands.push(0x1B, 0x21, 0x00); // Reset text mode
-        commands.push(0x1B, 0x61, 0x01); // Center align
-        
-        // Title (double height)
-        commands.push(0x1B, 0x21, 0x30); // Double height
-        addText(commands, "D-LAX CLOSET\n");
-        commands.push(0x1B, 0x21, 0x00); // Normal text
-        addText(commands, "======================\n");
-        addText(commands, "STORE INFORMATION\n");
-        addText(commands, "======================\n");
-        addText(commands, `Shop: ${storeInfo.shopName}\n`);
-        addText(commands, `Owner: ${storeInfo.ownerName}\n`);
-        addText(commands, `Phone: ${formatPhoneNumber(storeInfo.phoneNumber)}\n`);
-        addText(commands, `Address: ${storeInfo.address}\n`);
-        addText(commands, `Delivery: ${storeInfo.deliveryDate || 'Not specified'}\n`);
-        addText(commands, `Discount: ${discountPercentage}%  GST: ${gstPercentage}%\n\n`);
-        addText(commands, "======================\n");
-        addText(commands, "ORDER DETAILS\n");
-        addText(commands, "======================\n");
-
-        // Add products
-        let totalItems = 0;
-        let subtotal = 0;
-        
-        products.forEach(p => {
-            if (selectedProducts[p.id] > 0) {
-                const qty = selectedProducts[p.id];
-                const itemTotal = qty * p.price;
-                totalItems += qty;
-                subtotal += itemTotal;
-                
-                // Left align product name
-                commands.push(0x1B, 0x61, 0x00); // Left align
-                addText(commands, `${p.name}\n`);
-                
-                // Right align quantity and price
-                commands.push(0x1B, 0x61, 0x02); // Right align
-                addText(commands, `${qty} × ₹${p.price} = ₹${itemTotal}\n`);
-            }
-        });
-
-        // Calculate adjustments
-        const discountAmount = (subtotal * discountPercentage) / 100;
-        const discountedSubtotal = subtotal - discountAmount;
-        const gstAmount = (discountedSubtotal * gstPercentage) / 100;
-        const grandTotal = discountedSubtotal + gstAmount;
-
-        // Add totals section
-        commands.push(0x1B, 0x61, 0x00); // Left align
-        addText(commands, "----------------------\n");
-        
-        // Subtotal
-        addText(commands, "Subtotal:");
-        commands.push(0x1B, 0x61, 0x02); // Right align
-        addText(commands, `₹${subtotal.toFixed(2)}\n`);
-        
-        // Discount if applied
-        if (discountPercentage > 0) {
-            commands.push(0x1B, 0x61, 0x00); // Left align
-            addText(commands, `Discount (${discountPercentage}%):`);
-            commands.push(0x1B, 0x61, 0x02); // Right align
-            addText(commands, `-₹${discountAmount.toFixed(2)}\n`);
+    
+    // Build the receipt HTML
+    let receiptHTML = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>D-LAX CLOSET - Order Receipt</title>
+            <style>
+                body { font-family: Arial, sans-serif; width: 80mm; margin: 0 auto; padding: 10px; }
+                .header { text-align: center; margin-bottom: 10px; }
+                .title { font-size: 18px; font-weight: bold; }
+                .subtitle { font-size: 14px; }
+                .divider { border-top: 1px dashed #000; margin: 10px 0; }
+                .info-item { margin: 5px 0; }
+                .info-label { font-weight: bold; }
+                .product-row { display: flex; justify-content: space-between; margin: 5px 0; }
+                .total-row { font-weight: bold; margin-top: 10px; }
+                .text-center { text-align: center; }
+                .text-right { text-align: right; }
+                @media print {
+                    body { width: 80mm !important; }
+                    .no-print { display: none; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <div class="title">D-LAX CLOSET</div>
+                <div class="subtitle">Order Receipt</div>
+            </div>
+            <div class="divider"></div>
             
-            commands.push(0x1B, 0x61, 0x00); // Left align
-            addText(commands, "After discount:");
-            commands.push(0x1B, 0x61, 0x02); // Right align
-            addText(commands, `₹${discountedSubtotal.toFixed(2)}\n`);
+            <div class="info-item"><span class="info-label">Shop:</span> ${storeInfo.shopName}</div>
+            <div class="info-item"><span class="info-label">Owner:</span> ${storeInfo.ownerName}</div>
+            <div class="info-item"><span class="info-label">Phone:</span> ${formatPhoneNumber(storeInfo.phoneNumber)}</div>
+            <div class="info-item"><span class="info-label">Delivery:</span> ${storeInfo.deliveryDate || 'Not specified'}</div>
+            
+            <div class="divider"></div>
+            
+            <div style="font-weight: bold; margin-bottom: 5px;">ORDER DETAILS</div>
+    `;
+    
+    // Add products
+    let totalItems = 0;
+    let subtotal = 0;
+    
+    products.forEach(p => {
+        if (selectedProducts[p.id] > 0) {
+            const qty = selectedProducts[p.id];
+            const itemTotal = qty * p.price;
+            totalItems += qty;
+            subtotal += itemTotal;
+            
+            receiptHTML += `
+                <div class="product-row">
+                    <span>${p.name} (${qty} × ₹${p.price})</span>
+                    <span>₹${itemTotal}</span>
+                </div>
+            `;
         }
-
-        // GST if applied
-        if (gstPercentage > 0) {
-            commands.push(0x1B, 0x61, 0x00); // Left align
-            addText(commands, `GST (${gstPercentage}%):`);
-            commands.push(0x1B, 0x61, 0x02); // Right align
-            addText(commands, `+₹${gstAmount.toFixed(2)}\n`);
-        }
-
-        // Grand Total
-        commands.push(0x1B, 0x61, 0x00); // Left align
-        addText(commands, "----------------------\n");
-        commands.push(0x1B, 0x21, 0x08); // Bold
-        addText(commands, "GRAND TOTAL:");
-        commands.push(0x1B, 0x61, 0x02); // Right align
-        addText(commands, `₹${grandTotal.toFixed(2)}\n`);
-        commands.push(0x1B, 0x21, 0x00); // Normal text
-        
-        commands.push(0x1B, 0x61, 0x00); // Left align
-        addText(commands, `Total Items: ${totalItems}\n\n`);
-        
-        // Add order notes if they exist
-        if (storeInfo.orderNotes && storeInfo.orderNotes.trim() !== '') {
-            addText(commands, "Order Notes:\n");
-            addText(commands, `${storeInfo.orderNotes}\n\n`);
-        }
-        
-        addText(commands, `Generated: ${new Date().toLocaleString()}\n`);
-        addText(commands, "======================\n");
-        addText(commands, "Thank you for your order!\n");
-
-        // Add cut command (partial cut)
-        commands.push(0x1D, 0x56, 0x41, 0x10); // GS V 65 0 - Partial cut
-
-        // Convert commands to Uint8Array
-        const data = new Uint8Array(commands);
-        
-        // Send to printer
-        await device.transferOut(1, data);
-        
-        // Close connection
-        await device.close();
-    } catch (error) {
-        console.error("Printing failed:", error);
-        alert(`Printing error: ${error.message}`);
-        
-        // Fallback to regular print dialog if direct printing fails
-        const printWindow = window.open('', '_blank');
-        printWindow.document.write(`<pre style="font-family: monospace; font-size: 12px; width: 80mm;">`);
-        printWindow.document.write(getReceiptText());
-        printWindow.document.write('</pre>');
-        printWindow.document.close();
-        printWindow.focus();
-        setTimeout(() => {
-            printWindow.print();
-            printWindow.close();
-        }, 500);
+    });
+    
+    // Calculate adjustments
+    const discountAmount = (subtotal * discountPercentage) / 100;
+    const discountedSubtotal = subtotal - discountAmount;
+    const gstAmount = (discountedSubtotal * gstPercentage) / 100;
+    const grandTotal = discountedSubtotal + gstAmount;
+    
+    // Add totals
+    receiptHTML += `
+            <div class="divider"></div>
+            
+            <div class="product-row">
+                <span>Subtotal (${totalItems} items):</span>
+                <span>₹${subtotal.toFixed(2)}</span>
+            </div>
+    `;
+    
+    if (discountPercentage > 0) {
+        receiptHTML += `
+            <div class="product-row">
+                <span>Discount (${discountPercentage}%):</span>
+                <span>-₹${discountAmount.toFixed(2)}</span>
+            </div>
+            <div class="product-row">
+                <span>After discount:</span>
+                <span>₹${discountedSubtotal.toFixed(2)}</span>
+            </div>
+        `;
     }
+    
+    if (gstPercentage > 0) {
+        receiptHTML += `
+            <div class="product-row">
+                <span>GST (${gstPercentage}%):</span>
+                <span>+₹${gstAmount.toFixed(2)}</span>
+            </div>
+        `;
+    }
+    
+    receiptHTML += `
+            <div class="product-row total-row">
+                <span>GRAND TOTAL:</span>
+                <span>₹${grandTotal.toFixed(2)}</span>
+            </div>
+            
+            <div class="divider"></div>
+            
+            <div class="info-item"><span class="info-label">Order Notes:</span></div>
+            <div>${storeInfo.orderNotes || 'None'}</div>
+            
+            <div class="divider"></div>
+            
+            <div class="text-center" style="margin-top: 15px;">
+                Thank you for your order!<br>
+                ${new Date().toLocaleString()}
+            </div>
+            
+            <div class="no-print" style="margin-top: 20px; text-align: center;">
+                <button onclick="window.print()" style="padding: 8px 15px; background: #275c6c; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                    Print Receipt
+                </button>
+                <button onclick="window.close()" style="padding: 8px 15px; background: #1A4950; color: white; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px;">
+                    Close Window
+                </button>
+            </div>
+        </body>
+        </html>
+    `;
+    
+    // Write the HTML to the print window
+    printWindow.document.open();
+    printWindow.document.write(receiptHTML);
+    printWindow.document.close();
+    
+    // Focus the window (for better UX)
+    printWindow.focus();
 }
 
 // Helper function to add text to ESC/POS commands
