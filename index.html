@@ -591,57 +591,6 @@
             padding: 5px 0;
             font-size: 0.9rem;
         }
-
-        /* Add these styles to your existing CSS */
-        .product-carousel {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-        }
-
-        .product-carousel .product-img {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            padding: 15px;
-            transition: transform 0.5s ease, opacity 0.5s ease;
-            opacity: 0;
-            transform: scale(0.9);
-        }
-
-        .product-carousel .product-img.active {
-            opacity: 1;
-            transform: scale(1);
-        }
-
-        .carousel-controls {
-            position: absolute;
-            bottom: 10px;
-            left: 0;
-            right: 0;
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            z-index: 10;
-        }
-
-        .carousel-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background-color: rgba(255, 255, 255, 0.5);
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .carousel-dot.active {
-            background-color: white;
-            transform: scale(1.2);
-        }
     </style>
 </head>
 <body>
@@ -1239,56 +1188,11 @@ async function downloadBillPDF() {
         let selectedProducts = {};
         let storeInfo = {};
         const products = [
-            { 
-                id: 1, 
-                name: "Design 1", 
-                imagepath: "./product_images/Design1.jpg",
-                images: [
-                    "./product_images/Design1.jpg",
-                    "./product_images/Design1-back.jpg"
-                ], 
-                price: 1200 
-            },
-            { 
-                id: 2, 
-                name: "Design 2", 
-                imagepath: "./product_images/Design2.jpg",
-                images: [
-                    "./product_images/Design2.jpg",
-                    "./product_images/Design2-back.jpg"
-                ],  
-                price: 1500 
-            },
-            { 
-                id: 3, 
-                name: "Design 3", 
-                imagepath: "./product_images/Design3.jpg",
-                images: [
-                    "./product_images/Design3.jpg",
-                    "./product_images/Design3-back.jpg"
-                ], 
-                price: 1800 
-            },
-            { 
-                id: 4, 
-                name: "Design 4", 
-                imagepath: "./product_images/Design4.jpg",  
-                images: [
-                    "./product_images/Design4.jpg",
-                    "./product_images/Design4-back.jpg"
-                ], 
-                price: 2000 
-            },
-            { 
-                id: 5, 
-                name: "Design 5", 
-                imagepath: "./product_images/Design5.jpg",
-                images: [
-                    "./product_images/Design5.jpg",
-                    "./product_images/Design5-back.jpg"
-                ],   
-                price: 2500 
-            }
+            { id: 1, name: "Design 1", imagepath: "./product_images/Design1.jpg",  price: 1200 },
+            { id: 2, name: "Design 2", imagepath: "./product_images/Design2.jpg",  price: 1500 },
+            { id: 3, name: "Design 3", imagepath: "./product_images/Design3.jpg",  price: 1800 },
+            { id: 4, name: "Design 4", imagepath: "./product_images/Design4.jpg",  price: 2000 },
+            { id: 5, name: "Design 5", imagepath: "./product_images/Design5.jpg",  price: 2500 }
         ];
 
         // DOM elements
@@ -1350,119 +1254,29 @@ async function downloadBillPDF() {
 
         // Render products in grid
         function renderProducts() {
-    productGrid.innerHTML = '';
-    products.forEach(product => {
-        const card = document.createElement('div');
-        card.className = 'product-card';
-        card.innerHTML = `
-            <div class="product-img-container">
-                <div class="product-carousel">
-                    ${product.images.map((img, index) => `
-                        <img src="${img}" alt="${product.name} view ${index + 1}" 
-                            class="product-img ${index === 0 ? 'active' : ''}"
-                            >
-                    `).join('')}
-                    <div class="carousel-controls">
-                        ${product.images.map((_, index) => `
-                            <div class="carousel-dot ${index === 0 ? 'active' : ''}" 
-                                 data-product-id="${product.id}" 
-                                 data-index="${index}"></div>
-                        `).join('')}
+            productGrid.innerHTML = '';
+            products.forEach(product => {
+                const card = document.createElement('div');
+                card.className = 'product-card';
+                card.innerHTML = `
+                    <div class="product-img-container">
+                        <img src="${product.imagepath}" alt="${product.name}" class="product-img" style="object-fit:cover;"
+                            onerror="this.src='data:image/svg+xml;charset=UTF-8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\" fill=\"%23ddd\"></svg>
                     </div>
-                </div>
-            </div>
-            <div class="product-info">
-                <h3 class="product-title">${product.name}</h3>
-                <div style="margin-bottom: 10px; font-weight: 600;">₹${product.price}</div>
-                <div class="quantity-control">
-                    <button class="quantity-btn" onclick="changeQuantity(${product.id}, -1)">-</button>
-                    <div class="quantity-value" id="quantity-${product.id}">0</div>
-                    <button class="quantity-btn" onclick="changeQuantity(${product.id}, 1)">+</button>
-                </div>
-            </div>
-        `;
-        productGrid.appendChild(card);
-    });
-    
-    // Add event listeners for carousel dots
-    document.querySelectorAll('.carousel-dot').forEach(dot => {
-        dot.addEventListener('click', function() {
-            const productId = this.getAttribute('data-product-id');
-            const index = this.getAttribute('data-index');
-            showCarouselImage(productId, index);
-        });
-    });
-}
+                    <div class="product-info">
+                        <h3 class="product-title">${product.name}</h3>
+                        <div style="margin-bottom: 10px; font-weight: 600;">₹${product.price}</div>
+                        <div class="quantity-control">
+                            <button class="quantity-btn" onclick="changeQuantity(${product.id}, -1)">-</button>
+                            <div class="quantity-value" id="quantity-${product.id}">0</div>
+                            <button class="quantity-btn" onclick="changeQuantity(${product.id}, 1)">+</button>
+                        </div>
+                    </div>
+                `;
+                productGrid.appendChild(card);
+            });
+        }
 
-function showCarouselImage(productId, index) {
-    // Get all images and dots for this product
-    const carousel = document.querySelector(`.product-card[data-product-id="${productId}"] .product-carousel`);
-    if (!carousel) return;
-    
-    const images = carousel.querySelectorAll('.product-img');
-    const dots = carousel.querySelectorAll('.carousel-dot');
-    
-    // Update active states
-    images.forEach(img => img.classList.remove('active'));
-    dots.forEach(dot => dot.classList.remove('active'));
-    
-    // Set new active states
-    images[index].classList.add('active');
-    dots[index].classList.add('active');
-}
-
-// Add this to your init() function
-function init() {
-    addEventListeners();
-    renderProducts();
-    printBtn.addEventListener('click', printThermalReceipt);
-    downloadBillBtn.addEventListener('click', downloadBillPDF);
-    
-    // Start auto-rotation for carousels
-    startCarouselAutoRotation();
-    
-    // Initialize touch support
-    setupTouchCarousels();
-}
-
-function setupTouchCarousels() {
-    document.querySelectorAll('.product-carousel').forEach(carousel => {
-        let touchStartX = 0;
-        let touchEndX = 0;
-        
-        carousel.addEventListener('touchstart', e => {
-            touchStartX = e.changedTouches[0].screenX;
-        }, {passive: true});
-        
-        carousel.addEventListener('touchend', e => {
-            touchEndX = e.changedTouches[0].screenX;
-            handleSwipe(carousel, touchStartX, touchEndX);
-        }, {passive: true});
-    });
-}
-
-function handleSwipe(carousel, startX, endX) {
-    const threshold = 50; // Minimum swipe distance
-    
-    if (startX - endX > threshold) {
-        // Swipe left - next image
-        const activeIndex = parseInt(carousel.querySelector('.carousel-dot.active').getAttribute('data-index'));
-        const totalImages = carousel.querySelectorAll('.carousel-dot').length;
-        const nextIndex = (activeIndex + 1) % totalImages;
-        
-        const productId = carousel.closest('.product-card').getAttribute('data-product-id');
-        showCarouselImage(productId, nextIndex);
-    } else if (endX - startX > threshold) {
-        // Swipe right - previous image
-        const activeIndex = parseInt(carousel.querySelector('.carousel-dot.active').getAttribute('data-index'));
-        const totalImages = carousel.querySelectorAll('.carousel-dot').length;
-        const prevIndex = (activeIndex - 1 + totalImages) % totalImages;
-        
-        const productId = carousel.closest('.product-card').getAttribute('data-product-id');
-        showCarouselImage(productId, prevIndex);
-    }
-}
-        
         // Change quantity with animation
         function changeQuantity(productId, change) {
             const quantityElement = document.getElementById(`quantity-${productId}`);
