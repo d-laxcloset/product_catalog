@@ -591,6 +591,71 @@
             padding: 5px 0;
             font-size: 0.9rem;
         }
+
+                /* Carousel styles */
+        .product-carousel {
+            position: relative;
+            height: 400px;
+            overflow: hidden;
+        }
+
+        .carousel-images {
+            display: flex;
+            transition: transform 0.5s ease;
+            height: 100%;
+        }
+
+        .carousel-image {
+            min-width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .carousel-controls {
+            position: absolute;
+            top: 50%;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            transform: translateY(-50%);
+            padding: 0 10px;
+        }
+
+        .carousel-btn {
+            background: rgba(0,0,0,0.5);
+            color: white;
+            border: none;
+            width: 5px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .carousel-dots {
+            position: absolute;
+            bottom: 10px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .carousel-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.5);
+            cursor: pointer;
+        }
+
+        .carousel-dot.active {
+            background: white;
+        }
     </style>
 </head>
 <body>
@@ -712,6 +777,10 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 
     <script>
+        // Add to your existing global functions
+        window.moveCarousel = moveCarousel;
+        window.goToCarouselSlide = goToCarouselSlide;
+
         document.body.style.visibility = 'hidden';
          document.addEventListener('DOMContentLoaded', function() {
             // Show the body (splash screen will be visible, other content hidden)
@@ -1188,13 +1257,57 @@ async function downloadBillPDF() {
         let selectedProducts = {};
         let storeInfo = {};
         const products = [
-            { id: 1, name: "Design 1", imagepath: "./product_images/Design1.jpg",  price: 1200 },
-            { id: 2, name: "Design 2", imagepath: "./product_images/Design2.jpg",  price: 1500 },
-            { id: 3, name: "Design 3", imagepath: "./product_images/Design3.jpg",  price: 1800 },
-            { id: 4, name: "Design 4", imagepath: "./product_images/Design4.jpg",  price: 2000 },
-            { id: 5, name: "Design 5", imagepath: "./product_images/Design5.jpg",  price: 2500 }
+            { 
+                id: 1, 
+                name: "Design 1", 
+                imagepath: "./product_images/Design1.jpg",
+                images: [
+                    "./product_images/Design1.jpg",
+                    "./product_images/Design1_back.jpg"
+                ], 
+                price: 1200 
+            },
+            { 
+                id: 2, 
+                name: "Design 2", 
+                imagepath: "./product_images/Design2.jpg",
+                images: [
+                    "./product_images/Design2.jpg",
+                    "./product_images/Design2_back.jpg"
+                ],  
+                price: 1500 
+            },
+            { 
+                id: 3, 
+                name: "Design 3", 
+                imagepath: "./product_images/Design3.jpg",
+                images: [
+                    "./product_images/Design3.jpg",
+                    "./product_images/Design3_back.jpg"
+                ], 
+                price: 1800 
+            },
+            { 
+                id: 4, 
+                name: "Design 4", 
+                imagepath: "./product_images/Design4.jpg",  
+                images: [
+                    "./product_images/Design4.jpg",
+                    "./product_images/Design4_back.jpg"
+                ], 
+                price: 2000 
+            },
+            { 
+                id: 5, 
+                name: "Design 5", 
+                imagepath: "./product_images/Design5.jpg",
+                images: [
+                    "./product_images/Design5.jpg",
+                    "./product_images/Design5_back.jpg"
+                ],   
+                price: 2500 
+            }
         ];
-
         // DOM elements
         const pages = {
             welcome: document.getElementById('welcomePage'),
@@ -1258,11 +1371,33 @@ async function downloadBillPDF() {
             products.forEach(product => {
                 const card = document.createElement('div');
                 card.className = 'product-card';
-                card.innerHTML = `
-                    <div class="product-img-container">
-                        <img src="${product.imagepath}" alt="${product.name}" class="product-img" style="object-fit:cover;"
-                            onerror="this.src='data:image/svg+xml;charset=UTF-8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\" fill=\"%23ddd\"></svg>
+                
+                // Create carousel HTML
+                let carouselHTML = `
+                    <div class="product-carousel" id="carousel-${product.id}">
+                        <div class="carousel-images">
+                `;
+                
+                // Add all images for this product
+                product.images.forEach((img, index) => {
+                    carouselHTML += `
+                        <img src="${img}" alt="${product.name} ${index + 1}" 
+                            class="carousel-image">
+                    `;
+                });
+                
+                carouselHTML += `
+                        </div>
+                        <div class="carousel-controls">
+                            <button class="carousel-btn prev-btn" onclick="moveCarousel(${product.id}, -1)">❮</button>
+                            <button class="carousel-btn next-btn" onclick="moveCarousel(${product.id}, 1)">❯</button>
+                        </div>
+                        <div class="carousel-dots" id="dots-${product.id}"></div>
                     </div>
+                `;
+                
+                card.innerHTML = `
+                    ${carouselHTML}
                     <div class="product-info">
                         <h3 class="product-title">${product.name}</h3>
                         <div style="margin-bottom: 10px; font-weight: 600;">₹${product.price}</div>
@@ -1273,7 +1408,58 @@ async function downloadBillPDF() {
                         </div>
                     </div>
                 `;
+                
                 productGrid.appendChild(card);
+                
+                // Initialize dots for this carousel
+                initCarouselDots(product.id, product.images.length);
+            });
+        }
+
+        // Initialize carousel dots
+        function initCarouselDots(productId, count) {
+            const dotsContainer = document.getElementById(`dots-${productId}`);
+            dotsContainer.innerHTML = '';
+            
+            for (let i = 0; i < count; i++) {
+                const dot = document.createElement('div');
+                dot.className = `carousel-dot ${i === 0 ? 'active' : ''}`;
+                dot.onclick = () => goToCarouselSlide(productId, i);
+                dotsContainer.appendChild(dot);
+            }
+        }
+
+        // Move carousel
+        function moveCarousel(productId, direction) {
+            const carousel = document.getElementById(`carousel-${productId}`);
+            const images = carousel.querySelector('.carousel-images');
+            const dots = carousel.querySelectorAll('.carousel-dot');
+            const totalImages = images.children.length;
+            
+            let currentIndex = parseInt(images.dataset.currentIndex || 0);
+            currentIndex = (currentIndex + direction + totalImages) % totalImages;
+            
+            images.style.transform = `translateX(-${currentIndex * 100}%)`;
+            images.dataset.currentIndex = currentIndex;
+            
+            // Update dots
+            dots.forEach((dot, index) => {
+                dot.classList.toggle('active', index === currentIndex);
+            });
+        }
+
+        // Go to specific slide
+        function goToCarouselSlide(productId, index) {
+            const carousel = document.getElementById(`carousel-${productId}`);
+            const images = carousel.querySelector('.carousel-images');
+            const dots = carousel.querySelectorAll('.carousel-dot');
+            
+            images.style.transform = `translateX(-${index * 100}%)`;
+            images.dataset.currentIndex = index;
+            
+            // Update dots
+            dots.forEach((dot, i) => {
+                dot.classList.toggle('active', i === index);
             });
         }
 
